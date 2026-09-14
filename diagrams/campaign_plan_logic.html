@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Campaign Plan Logic</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #16191d;
+    --muted: #5f6b78;
+    --line: #e3e8ee;
+
+    --green: #1f9d5b;
+    --green-soft: #e6f6ed;
+    --green-dark: #157845;
+
+    --t1: #1668b8;
+    --t1-bg: #e8f2fc;
+    --t2: #c2621a;
+    --t2-bg: #fdeee1;
+    --t3: #6a4bb5;
+    --t3-bg: #efeafb;
+
+    --drop: #b23b48;
+    --drop-bg: #fdecee;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-block: 32px; padding-left: 20px; padding-right: 20px;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+
+  header { margin-bottom: 30px; }
+  h1 { font-size: 23px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0; font-size: 13px; }
+  .tbl-name {
+    font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+    color: var(--green-dark); background: var(--green-soft);
+    padding: 3px 8px; border-radius: 4px; display: inline-block; margin-top: 10px;
+  }
+
+  .step { display: flex; gap: 14px; margin-bottom: 26px; }
+  .bullet { flex: 0 0 30px; display: flex; flex-direction: column; align-items: center; }
+  .num {
+    width: 30px; height: 30px; border-radius: 50%; background: var(--green);
+    color: #fff; font-weight: 800; font-size: 13px;
+    display: flex; align-items: center; justify-content: center; flex: 0 0 30px;
+  }
+  .rail { flex: 1 1 auto; width: 2px; background: var(--green-soft); margin-top: 6px; min-height: 12px; }
+  .step:last-of-type .rail { background: transparent; }
+  .body { flex: 1 1 auto; padding-top: 3px; min-width: 0; }
+  h2 { font-size: 15px; margin: 3px 0 8px; font-weight: 700; }
+  p { margin: 0 0 10px; }
+  .note { color: var(--muted); font-size: 12.5px; }
+
+  code {
+    font-family: ui-monospace, Consolas, monospace; font-size: 11.5px;
+    background: #f2f5f8; padding: 1px 5px; border-radius: 3px;
+  }
+  pre {
+    font-family: ui-monospace, Consolas, monospace; font-size: 11.5px;
+    background: #f7f9fb; border: 1px solid var(--line); border-left: 4px solid var(--green);
+    border-radius: 6px; padding: 11px 13px; overflow-x: auto; margin: 0 0 12px; line-height: 1.55;
+  }
+  pre .kw { color: var(--green-dark); font-weight: 700; }
+  pre .cm { color: var(--muted); }
+
+  .keys { list-style: none; margin: 0 0 12px; padding: 0; counter-reset: k; }
+  .keys li {
+    counter-increment: k; position: relative; padding: 8px 12px 8px 40px;
+    border: 1px solid var(--line); border-radius: 6px; margin-bottom: 6px; background: #fff;
+    font-size: 12.5px;
+  }
+  .keys li::before {
+    content: counter(k); position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+    width: 19px; height: 19px; border-radius: 4px; background: var(--green-soft);
+    color: var(--green-dark); font-weight: 800; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .keys b { font-weight: 700; }
+  .keys span { color: var(--muted); }
+
+  .funnel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .fstep {
+    border: 1px solid var(--line); border-top: 3px solid var(--green);
+    border-radius: 6px; padding: 8px 13px; background: #fff; min-width: 96px;
+  }
+  .fstep .v { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; }
+  .fstep .l { font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+  .fstep.cut { border-top-color: var(--drop); background: var(--drop-bg); }
+  .fstep.cut .v { color: var(--drop); }
+  .fstep.win { border-top-color: var(--green); background: var(--green-soft); }
+  .fstep.win .v { color: var(--green-dark); }
+  .farrow { color: var(--green); font-size: 15px; font-weight: 700; }
+
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .tier { border-radius: 7px; padding: 11px 13px; border: 1px solid var(--line); }
+  .tier.a { background: var(--t1-bg); border-left: 4px solid var(--t1); }
+  .tier.b { background: var(--t2-bg); border-left: 4px solid var(--t2); }
+  .tier.c { background: var(--t3-bg); border-left: 4px solid var(--t3); }
+  .tier .tname { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; font-weight: 700; }
+  .tier.a .tname { color: var(--t1); }
+  .tier.b .tname { color: var(--t2); }
+  .tier.c .tname { color: var(--t3); }
+  .tier .tn { font-size: 20px; font-weight: 800; margin: 4px 0 2px; }
+  .tier .td { font-size: 11.5px; color: var(--muted); }
+
+  .scroll { overflow-x: auto; margin-bottom: 12px; }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th {
+    color: #fff; background: var(--green); font-weight: 700; font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: 0.05em; border-bottom: none; white-space: nowrap;
+  }
+  th:first-child { border-top-left-radius: 6px; }
+  th:last-child { border-top-right-radius: 6px; }
+  td.num-c { font-family: ui-monospace, Consolas, monospace; text-align: right; }
+  tbody tr:nth-child(odd) { background: #fafcfd; }
+  tr.total { background: var(--green-soft) !important; font-weight: 700; }
+  .pill {
+    display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 7px;
+    border-radius: 3px; font-family: ui-monospace, Consolas, monospace;
+  }
+  .pill.a { background: var(--t1-bg); color: var(--t1); }
+  .pill.b { background: var(--t2-bg); color: var(--t2); }
+  .pill.c { background: var(--t3-bg); color: var(--t3); }
+
+  footer {
+    margin-top: 32px; padding-top: 14px; border-top: 2px solid var(--green-soft);
+    color: var(--muted); font-size: 11.5px;
+  }
+
+  @media (max-width: 600px) {
+    .step { gap: 10px; }
+    .bullet { flex-basis: 26px; }
+    .num { width: 26px; height: 26px; flex-basis: 26px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Campaign Plan &mdash; calculation logic</h1>
+    <p class="sub">How 1,800 silver rows become a ranked, week-by-week send plan of exactly 1,000 patients.</p>
+    <div class="tbl-name">dev_osh_gold_db.osh_reminder.fact_osh_campaign_plan</div>
+  </header>
+
+  <div class="step">
+    <div class="bullet"><div class="num">1</div><div class="rail"></div></div>
+    <div class="body">
+      <h2>Narrow to the textable pool</h2>
+      <p class="note">Four conditions. A patient must consent, still need an appointment, sit in a risk band the pilot targets, and have a number to text.</p>
+<pre><span class="kw">WHERE</span> c.sms_consent
+  <span class="kw">AND</span> c.appointment_status <span class="kw">IN</span> ('not_scheduled','cancelled')
+  <span class="kw">AND</span> c.risk_level <span class="kw">IN</span> ('High','Highest','Medium')
+  <span class="kw">AND</span> c.phone_number <span class="kw">IS NOT NULL</span></pre>
+      <div class="funnel">
+        <div class="fstep"><div class="v">2,000</div><div class="l">API patients</div></div>
+        <div class="farrow">&#10148;</div>
+        <div class="fstep cut"><div class="v">&minus;200</div><div class="l">no SMS consent</div></div>
+        <div class="farrow">&#10148;</div>
+        <div class="fstep cut"><div class="v">&minus;352</div><div class="l">Low risk</div></div>
+        <div class="farrow">&#10148;</div>
+        <div class="fstep cut"><div class="v">&minus;333</div><div class="l">already scheduled or seen</div></div>
+        <div class="farrow">&#10148;</div>
+        <div class="fstep win"><div class="v">1,115</div><div class="l">eligible pool</div></div>
+      </div>
+      <p class="note"><b>A cancelled appointment counts as needing one.</b> That is a judgment call, and it is worth 58 patients. The consent cut happens upstream in silver, so bronze keeps all 2,000 and the filter is not re-litigated here. No patient was lost to a missing phone number.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="bullet"><div class="num">2</div><div class="rail"></div></div>
+    <div class="body">
+      <h2>Rank the pool</h2>
+      <p class="note">One <code>ROW_NUMBER()</code> over five sort keys, applied in order. The first key that differs decides.</p>
+      <ul class="keys">
+        <li><b>Risk</b> <span>&mdash; Highest/VIP, then High/Serious, then Medium/Moderate. The brief&rsquo;s core requirement.</span></li>
+        <li><b>Need</b> <span>&mdash; no appointment ahead of cancelled.</span></li>
+        <li><b>Newness</b> <span>&mdash; <code>new_vip</code> ahead of <code>initial</code>, so a newly flagged VIP is not stuck behind the original list.</span></li>
+        <li><b>Overdue</b> <span>&mdash; oldest <code>last_pcp_visit_date</code> first. The longest without care goes first.</span></li>
+        <li><b>Id</b> <span>&mdash; deterministic tiebreak, so the same input always produces the same plan.</span></li>
+      </ul>
+      <p class="note">Because ranking runs over whoever is eligible <em>right now</em>, anyone who opted out or booked an appointment since the last run simply is not there and the ranks close up behind them. Backfill needs no separate mechanism.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="bullet"><div class="num">3</div><div class="rail"></div></div>
+    <div class="body">
+      <h2>Label the tier</h2>
+      <p class="note">Tiers are recorded so reporting can measure the core cohort separately from the top-up.</p>
+      <div class="tiers">
+        <div class="tier a">
+          <div class="tname">T1 core cohort</div>
+          <div class="tn">775</div>
+          <div class="td">High or Highest, no appointment. The brief&rsquo;s intended target.</div>
+        </div>
+        <div class="tier b">
+          <div class="tname">T2 core &mdash; cancelled</div>
+          <div class="tn">58</div>
+          <div class="td">High or Highest whose appointment was cancelled.</div>
+        </div>
+        <div class="tier c">
+          <div class="tname">T3 top-up</div>
+          <div class="tn">167</div>
+          <div class="td">Medium risk, added only to reach 1,000.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="bullet"><div class="num">4</div><div class="rail"></div></div>
+    <div class="body">
+      <h2>Cut at 1,000</h2>
+<pre><span class="kw">QUALIFY</span> priority_rank &lt;= 1000</pre>
+      <p class="note">The High + Highest pool does not contain 1,000 textable patients. It yields <b>833</b>. The plan states the shortfall rather than silently under-delivering.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Tier</th><th class="num-c">Patients</th><th class="num-c">Running</th></tr></thead>
+          <tbody>
+            <tr><td><span class="pill a">T1</span> Highest / VIP, no appointment</td><td class="num-c">382</td><td class="num-c">382</td></tr>
+            <tr><td><span class="pill a">T1</span> High / Serious, no appointment</td><td class="num-c">393</td><td class="num-c">775</td></tr>
+            <tr><td><span class="pill b">T2</span> High + Highest, cancelled</td><td class="num-c">58</td><td class="num-c">833</td></tr>
+            <tr><td><span class="pill c">T3</span> Medium / Moderate top-up</td><td class="num-c">167</td><td class="num-c">1,000</td></tr>
+            <tr class="total"><td>Selected</td><td class="num-c">1,000</td><td class="num-c">of 1,115 eligible</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Drop the Medium tier and the pilot is an 833-patient campaign. Either answer defends; the shortfall being invisible would not.</p>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="bullet"><div class="num">5</div><div class="rail"></div></div>
+    <div class="body">
+      <h2>Spread across five weeks</h2>
+      <p class="note">The 20% threshold is 200 patients a week. Rank decides the week, so the highest-risk patients are contacted first.</p>
+<pre><span class="cm">-- 20% of 1,000 = 200 per week</span>
+<span class="kw">CAST</span>(ceil(priority_rank / 200.0) <span class="kw">AS INT</span>)          <span class="kw">AS</span> send_campaign_week
+date_add(current_date(), (send_campaign_week - 1) * 7)  <span class="kw">AS</span> send_week_start_date
+weekofyear(send_week_start_date)                        <span class="kw">AS</span> send_week_of_year</pre>
+      <p class="note">The week is derived from a <em>date</em>, then converted, rather than adding to a week number. Adding 4 to week 51 would give week 55; adding 28 days gives the right week in the next year.</p>
+      <div class="scroll">
+        <table>
+          <thead><tr><th>Week</th><th class="num-c">Ranks</th><th class="num-c">week_of_year</th><th>Starts</th><th class="num-c">Patients</th><th>Risk mix</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td class="num-c">1&ndash;200</td><td class="num-c">38</td><td>2026-09-14</td><td class="num-c">200</td><td>200 Highest</td></tr>
+            <tr><td>2</td><td class="num-c">201&ndash;400</td><td class="num-c">39</td><td>2026-09-21</td><td class="num-c">200</td><td>200 Highest</td></tr>
+            <tr><td>3</td><td class="num-c">401&ndash;600</td><td class="num-c">40</td><td>2026-09-28</td><td class="num-c">200</td><td>13 Highest, 187 High</td></tr>
+            <tr><td>4</td><td class="num-c">601&ndash;800</td><td class="num-c">41</td><td>2026-10-05</td><td class="num-c">200</td><td>200 High</td></tr>
+            <tr><td>5</td><td class="num-c">801&ndash;1000</td><td class="num-c">42</td><td>2026-10-12</td><td class="num-c">200</td><td>33 High, 167 Medium</td></tr>
+            <tr class="total"><td>Total</td><td class="num-c">&mdash;</td><td class="num-c">38&ndash;42</td><td>5 weeks</td><td class="num-c">1,000</td><td>Highest &rarr; Medium</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">The cap is <b>per week and resets</b>. Cumulative delivery is 200 / 400 / 600 / 800 / 1000, not 200 once. Treating the 200 as a running total would spend the whole budget in week 1 and send nothing for the remaining four.</p>
+    </div>
+  </div>
+
+  <footer>
+    eddie turner &middot; notebook <code>notebooks/gold_notebooks/gold_osh_campaign.py</code>
+  </footer>
+
+</div>
+</body>
+</html>

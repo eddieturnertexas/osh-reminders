@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ingestion Framework</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #16191d;
+    --muted: #5f6b78;
+    --line: #e3e8ee;
+
+    --green: #1f9d5b;
+    --green-soft: #e6f6ed;
+
+    --source: #1668b8;
+    --source-bg: #e8f2fc;
+    --source-tint: #f5faff;
+
+    --bronze: #c2621a;
+    --bronze-bg: #fdeee1;
+    --bronze-tint: #fffaf5;
+
+    --silver: #6a4bb5;
+    --silver-bg: #efeafb;
+    --silver-tint: #faf8ff;
+
+    --gold: #b8860b;
+    --gold-bg: #fcf3d9;
+    --gold-tint: #fffcf2;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-block: 32px; padding-left: 20px; padding-right: 20px;
+  }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  h1 { font-size: 23px; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0; font-size: 13px; }
+
+  h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--green); margin: 34px 0 14px; font-weight: 700;
+    padding-bottom: 6px; border-bottom: 2px solid var(--green-soft);
+  }
+
+  .flow { display: flex; align-items: stretch; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+  .stage { flex: 1 1 0; min-width: 190px; }
+
+  .arrow {
+    flex: 0 0 40px; display: flex; flex-direction: column;
+    align-items: center; justify-content: flex-start; gap: 4px; padding-top: 62px;
+  }
+  .arrow .glyph {
+    color: var(--green); font-size: 15px; line-height: 1; font-weight: 700;
+  }
+  .arrow .note {
+    font-size: 9.5px; color: var(--green); text-align: center; font-weight: 600;
+    font-family: ui-monospace, Consolas, monospace; white-space: nowrap;
+    background: var(--green-soft); padding: 2px 5px; border-radius: 3px;
+  }
+
+  .tag {
+    display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.1em;
+    text-transform: uppercase; padding: 4px 9px; border-radius: 4px; margin-bottom: 10px;
+    color: #fff;
+  }
+  .tag.source { background: var(--source); }
+  .tag.bronze { background: var(--bronze); }
+  .tag.silver { background: var(--silver); }
+  .tag.gold   { background: var(--gold); }
+
+  .card {
+    border: 1px solid var(--line); border-radius: 8px;
+    padding: 13px 14px; margin-bottom: 10px; background: #fff;
+  }
+  .card.src { border-left: 4px solid var(--source); background: var(--source-tint); }
+  .card.brz { border-left: 4px solid var(--bronze); background: var(--bronze-tint); }
+  .card.slv { border-left: 4px solid var(--silver); background: var(--silver-tint); }
+  .card.gld { border-left: 4px solid var(--gold);   background: var(--gold-tint); }
+
+  .name {
+    font-family: ui-monospace, Consolas, monospace; font-size: 12.5px;
+    font-weight: 700; word-break: break-word; margin-bottom: 4px;
+  }
+  .card.src .name { color: var(--source); }
+  .card.brz .name { color: var(--bronze); }
+  .card.slv .name { color: var(--silver); }
+  .card.gld .name { color: var(--gold); }
+
+  .count { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .count small { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .desc { color: var(--muted); font-size: 12px; margin-top: 7px; }
+  ul.bul { margin: 8px 0 0; padding-left: 15px; color: var(--muted); font-size: 11.5px; }
+  ul.bul li { margin-bottom: 3px; }
+  ul.bul li::marker { color: var(--green); }
+  code {
+    font-family: ui-monospace, Consolas, monospace; font-size: 11px;
+    background: #f2f5f8; padding: 1px 4px; border-radius: 3px; color: var(--ink);
+  }
+
+  .tasks { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+  .task {
+    border: 1px solid var(--line); border-top: 3px solid var(--green);
+    border-radius: 6px; background: #fff;
+    padding: 7px 11px; font-family: ui-monospace, Consolas, monospace; font-size: 11.5px;
+  }
+  .task b { font-weight: 700; }
+  .task span { display: block; color: var(--muted); font-size: 10px; margin-top: 2px; font-family: inherit; }
+  .chev { color: var(--green); font-size: 14px; font-weight: 700; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 12px; }
+  .grid2 .card { border-left: 4px solid var(--green); background: var(--green-soft); }
+  .grid2 .card .name { color: #157845; }
+
+  footer {
+    margin-top: 34px; padding-top: 14px; border-top: 2px solid var(--green-soft);
+    color: var(--muted); font-size: 11.5px;
+  }
+
+  @media (max-width: 720px) {
+    .flow { flex-direction: column; }
+    .arrow { flex: 0 0 auto; padding: 8px 0; flex-direction: row; gap: 9px; }
+    .arrow .glyph { transform: rotate(90deg); }
+    .stage { min-width: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Ingestion Framework</h1>
+    <p class="sub">API &rarr; bronze &rarr; silver &rarr; gold, on serverless compute.</p>
+  </header>
+
+  <h2>Data flow</h2>
+  <div class="flow">
+
+    <div class="stage">
+      <span class="tag source">Source</span>
+      <div class="card src">
+        <div class="name">POST /payload</div>
+        <div class="count">2,000 <small>patients</small></div>
+        <div class="desc">FastAPI on Azure App Service. Bearer token and base URL come from Databricks secrets.</div>
+        <ul class="bul">
+          <li>Paged by <code>limit</code> / <code>offset</code></li>
+          <li>gzip: 898 KB &rarr; 115 KB</li>
+          <li>~0.25 s per page</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="glyph">&#10148;</div>
+      <div class="note">10 &times; 200</div>
+    </div>
+
+    <div class="stage">
+      <span class="tag bronze">Bronze</span>
+      <div class="card brz">
+        <div class="name">osh.osh_event</div>
+        <div class="count">2,000 <small>rows</small></div>
+        <div class="desc">Whole API record in one <code>VARIANT</code> column. No payload field is named, so an API change needs no migration.</div>
+        <ul class="bul">
+          <li><code>Id</code> = <code>xxhash64</code> of the record</li>
+          <li>Each of the 10 batches commits alone</li>
+          <li>MERGE on <code>Id</code> &mdash; reruns are no-ops</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="glyph">&#10148;</div>
+      <div class="note">cast + filter</div>
+    </div>
+
+    <div class="stage">
+      <span class="tag silver">Silver</span>
+      <div class="card slv">
+        <div class="name">osh.dim_osh_event</div>
+        <div class="count">1,800 <small>rows</small></div>
+        <div class="desc">Every field cast out of the VARIANT to its own type. 200 non-consenting patients are dropped here.</div>
+        <ul class="bul">
+          <li>Keyed on <code>Id</code> + bronze load time</li>
+          <li>Adds <code>silver_layer_timestamp</code></li>
+          <li>Joins <code>dim_patients</code>, <code>dim_location</code>, <code>dim_date</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="arrow">
+      <div class="glyph">&#10148;</div>
+      <div class="note">rank + join</div>
+    </div>
+
+    <div class="stage">
+      <span class="tag gold">Gold</span>
+      <div class="card gld">
+        <div class="name">osh_reminder.fact_osh_reminder</div>
+        <div class="count">1,800 <small>rows</small></div>
+        <div class="desc">Reportable fact. Surrogate keys plus campaign measures. Incremental.</div>
+      </div>
+      <div class="card gld">
+        <div class="name">osh_reminder.fact_osh_campaign_plan</div>
+        <div class="count">1,000 <small>rows</small></div>
+        <div class="desc">Ranked send plan, 200 per week across weeks 38&ndash;42. Rebuilt each run, because ranking is relative.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Job: osh_ingestion &mdash; six serverless tasks</h2>
+  <div class="tasks">
+    <div class="task"><b>bronze_status_check</b><span>sync stream &rarr; status</span></div>
+    <span class="chev">&#10148;</span>
+    <div class="task"><b>bronze_ingestion</b><span>page the API, 200 at a time</span></div>
+    <span class="chev">&#10148;</span>
+    <div class="task"><b>silver_status_check</b><span>sync stream &rarr; status</span></div>
+    <span class="chev">&#10148;</span>
+    <div class="task"><b>silver_ingestion</b><span>dispatch per config row</span></div>
+    <span class="chev">&#10148;</span>
+    <div class="task"><b>gold_status_check</b><span>sync stream &rarr; status</span></div>
+    <span class="chev">&#10148;</span>
+    <div class="task"><b>gold_ingestion</b><span>dispatch per config row</span></div>
+  </div>
+
+  <h2>Config-driven dispatch</h2>
+  <div class="grid2">
+    <div class="card">
+      <div class="name">osh_config_&lt;layer&gt;_stream</div>
+      <div class="desc">One row per stream: which notebook runs it, its source and target catalog, schema and table, and the secret pointers for the API.</div>
+    </div>
+    <div class="card">
+      <div class="name">osh_config_&lt;layer&gt;_status</div>
+      <div class="desc">Rebuilt from the stream table each run. Carries <code>RunOrder</code> and the enabled / running / completed flags the orchestrator loops over.</div>
+    </div>
+    <div class="card">
+      <div class="name">osh_config_log_header</div>
+      <div class="desc">One row per run phase &mdash; <code>Bronze Started</code>, <code>Bronze Ended</code>, and the same for silver and gold.</div>
+    </div>
+    <div class="card">
+      <div class="name">osh_config_log_header_detail</div>
+      <div class="desc">One row per event: <code>START</code>, a <code>PROGRESS</code> row per micro-batch, <code>SUMMARY</code>, <code>STOP</code>, <code>SKIPPED</code> for a disabled stream, <code>ERROR</code> with the phase and trace.</div>
+    </div>
+  </div>
+  <p class="sub" style="margin-top:12px">
+    <code>fact_osh_campaign_plan</code> was added with a config row and a notebook. No job task was needed.
+  </p>
+
+  <footer>
+    eddie turner &middot;
+    bootstrap 93 s, full ingestion 305 s on serverless <code>PERFORMANCE_OPTIMIZED</code>.
+  </footer>
+
+</div>
+</body>
+</html>

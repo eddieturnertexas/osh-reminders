@@ -1,0 +1,57 @@
+# ============================================================================
+#    ___  ____  _   _
+#   / _ \/ ___|| | | |      OAK STREET HEALTH
+#  | | | \___ \| |_| |      Appointment Reminder Pipeline
+#  | |_| |___) |  _  |      Databricks Asset Bundle / Medallion
+#   \___/|____/|_| |_|
+# ============================================================================
+#  Job     : bootstrap_init
+#  Author  : eddie turner
+#  Date    : 2026-09-13
+#  Details : Creates and seeds every OSH catalog, schema, volume and config table.
+#            Serverless compute; the classic job cluster is kept below, commented out.
+# ============================================================================
+#
+#   job_clusters:
+#     - job_cluster_key: osh_bootstrap_cluster
+#       new_cluster:
+#         spark_version: "15.4.x-scala2.12"
+#         node_type_id: "Standard_DS3_v2"
+#         data_security_mode: SINGLE_USER
+#         autoscale:
+#           min_workers: 1
+#           max_workers: 2
+#
+# ============================================================================
+
+resources:
+  jobs:
+    bootstrap_init:
+      name: "OSH Bootstrap Init [${var.catalog_env}]"
+      performance_target: ${var.bootstrap_job.performance_target}
+
+      tasks:
+        - task_key: create_source_objects
+          notebook_task:
+            notebook_path: ../notebooks/bootstrap/create_source_objects.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+
+        - task_key: fill_objects
+          depends_on:
+            - task_key: create_source_objects
+          notebook_task:
+            notebook_path: ../notebooks/bootstrap/fill_objects.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+
+        - task_key: customer_fill
+          depends_on:
+            - task_key: fill_objects
+          notebook_task:
+            notebook_path: ../notebooks/bootstrap/customer_fill.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+
+      queue:
+        enabled: true

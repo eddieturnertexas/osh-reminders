@@ -1,0 +1,47 @@
+# ============================================================================
+#    ___  ____  _   _
+#   / _ \/ ___|| | | |      OAK STREET HEALTH
+#  | | | \___ \| |_| |      Appointment Reminder Pipeline
+#  | |_| |___) |  _  |      Databricks Asset Bundle / Medallion
+#   \___/|____/|_| |_|
+# ============================================================================
+#  File    : databricks.yml
+#  Author  : eddie turner
+#  Date    : 2026-09-13
+#  Details : Bundle root: name, host, includes and the dev/qa/prod targets.
+#            Must stay at the repo root; the CLI locates the bundle by it.
+# ============================================================================
+
+bundle:
+  name: osh-reminders
+
+include:
+  - config/*.yml
+  - resources/*.yml
+
+workspace:
+  host: https://adb-2217087240028799.19.azuredatabricks.net
+  root_path: /Workspace/Repos/${bundle.name}/${bundle.target}
+
+targets:
+  dev:
+    # mode: production
+    default: true
+    presets:
+      name_prefix: "[dev ${workspace.current_user.short_name}] "
+      jobs_max_concurrent_runs: 4
+      trigger_pause_status: PAUSED
+      tags:
+        dev: ${workspace.current_user.short_name}
+    variables:
+      catalog_env: dev
+
+  qa:
+    mode: production
+    variables:
+      catalog_env: qa
+
+  prod:
+    mode: production
+    variables:
+      catalog_env: prod

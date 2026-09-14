@@ -1,0 +1,98 @@
+# ============================================================================
+#    ___  ____  _   _
+#   / _ \/ ___|| | | |      OAK STREET HEALTH
+#  | | | \___ \| |_| |      Appointment Reminder Pipeline
+#  | |_| |___) |  _  |      Databricks Asset Bundle / Medallion
+#   \___/|____/|_| |_|
+# ============================================================================
+#  Job     : osh_ingestion
+#  Author  : eddie turner
+#  Date    : 2026-09-13
+#  Details : Runs the medallion load: bronze, then silver, then gold, in order.
+#            Serverless compute; the classic job cluster is kept below, commented out.
+# ============================================================================
+#
+#   job_clusters:
+#     - job_cluster_key: osh_ingestion_cluster
+#       new_cluster:
+#         spark_version: "15.4.x-scala2.12"
+#         node_type_id: "Standard_DS3_v2"
+#         data_security_mode: SINGLE_USER
+#         autoscale:
+#           min_workers: 1
+#           max_workers: 4
+#
+# ============================================================================
+
+resources:
+  jobs:
+    osh_ingestion:
+      name: "OSH Ingestion [${var.catalog_env}]"
+      performance_target: ${var.bootstrap_job.performance_target}
+
+      tasks:
+        - task_key: bronze_status_check
+          notebook_task:
+            notebook_path: ../notebooks/bronze_notebooks/bronze_status_check.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+
+        - task_key: bronze_ingestion
+          depends_on:
+            - task_key: bronze_status_check
+          notebook_task:
+            notebook_path: ../notebooks/bronze_notebooks/bronze_ingestion.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+              batch_size: ${var.bronze_ingestion_job.batch_size}
+              max_rows: ${var.bronze_ingestion_job.max_rows}
+              job_name: ${bundle.name}
+              job_id: "{{job.id}}"
+              run_id: "{{job.run_id}}"
+              task_name: "{{task.name}}"
+              task_run_id: "{{task.run_id}}"
+
+        - task_key: silver_status_check
+          depends_on:
+            - task_key: bronze_ingestion
+          notebook_task:
+            notebook_path: ../notebooks/silver_notebooks/silver_status_check.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+
+        - task_key: silver_ingestion
+          depends_on:
+            - task_key: silver_status_check
+          notebook_task:
+            notebook_path: ../notebooks/silver_notebooks/silver_ingestion.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+              job_name: ${bundle.name}
+              job_id: "{{job.id}}"
+              run_id: "{{job.run_id}}"
+              task_name: "{{task.name}}"
+              task_run_id: "{{task.run_id}}"
+
+        - task_key: gold_status_check
+          depends_on:
+            - task_key: silver_ingestion
+          notebook_task:
+            notebook_path: ../notebooks/gold_notebooks/gold_status_check.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+
+        - task_key: gold_ingestion
+          depends_on:
+            - task_key: gold_status_check
+          notebook_task:
+            notebook_path: ../notebooks/gold_notebooks/gold_ingestion.py
+            base_parameters:
+              catalog_env: ${var.catalog_env}
+              job_name: ${bundle.name}
+              job_id: "{{job.id}}"
+              run_id: "{{job.run_id}}"
+              task_name: "{{task.name}}"
+              task_run_id: "{{task.run_id}}"
+
+      queue:
+        enabled: true

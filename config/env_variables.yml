@@ -1,0 +1,91 @@
+# ============================================================================
+#    ___  ____  _   _
+#   / _ \/ ___|| | | |      OAK STREET HEALTH
+#  | | | \___ \| |_| |      Appointment Reminder Pipeline
+#  | |_| |___) |  _  |      Databricks Asset Bundle / Medallion
+#   \___/|____/|_| |_|
+# ============================================================================
+#  File    : config/env_variables.yml
+#  Author  : eddie turner
+#  Date    : 2026-09-13
+#  Details : Project-wide variables shared by every OSH workflow.
+#            Catalog names take the {catalog_env} prefix at run time.
+# ============================================================================
+
+variables:
+
+  workspace_path_prefix:
+    default: /Workspace/osh/osh_ingestion
+
+  team_code:
+    default: osh
+
+  catalog:
+    default: dev_osh_bronze_db
+
+  schema:
+    default: osh
+
+  catalog_env:
+    description: Environment prefix used by the OSH config tables (dev/qa/prod).
+    default: dev
+
+  admin_group_name:
+    default: g_az_test_${var.team_code}*admin
+
+  eng_group_name:
+    default: g_az_test*${var.team_code}*engineers
+
+  l2_support_group_name:
+    default: g_az_test*${var.team_code}_l2_support
+
+  # job_cluster_policy_id:
+  #   lookup:
+  #     cluster_policy: OSH Job Compute
+
+  # osh_ingestion_cluster_id:
+  #   lookup:
+  #     cluster: osh_ingestion_cluster
+
+  secret_scope_name:
+    default: osh
+
+  bootstrap_settings:
+    type: complex
+    default:
+      allowed_envs: [dev, qa, prod]
+      workspace_environments:
+        adb-2217087240028799.19.azuredatabricks.net: dev
+      config_schema: "{catalog_env}_osh_bronze_db.osh"
+      ingestion_volume: osh_ingestion
+      silver_schema: "{catalog_env}_osh_silver_db.osh"
+
+      gold_schema: "{catalog_env}_osh_gold_db.osh_reminder"
+      customer:
+        catalog_name: "{catalog_env}_osh_silver_db"
+        schema_name: osh_reminder
+        csv_dir: "/Volumes/{catalog_env}_osh_bronze_db/osh/osh_ingestion/seed"
+        catalog_managed_location: ""
+        date_timezone: America/Bogota
+        campaign_start_date: "2026-10-05"
+        seed_data: "true"
+        seed_data_choices: ["true", "false"]
+        session_timezone: UTC
+        source_timezone: UTC
+        calendar_months_before: 6
+        calendar_months_after: 6
+        campaign_days: 35
+        seed_files:
+          dim_patients: dim_patient_2000.csv
+          dim_location: dim_location.csv
+
+  bootstrap_job:
+    type: complex
+    default:
+      performance_target: PERFORMANCE_OPTIMIZED
+
+  bronze_ingestion_job:
+    type: complex
+    default:
+      batch_size: "200"
+      max_rows: "2000"
